@@ -5,6 +5,8 @@ import pandas as pd
 import duckdb
 import matplotlib.pyplot as plt
 import os
+import numpy as np
+import seaborn as sns
 
 from config import MODEL_OPTIONS
 from agent import get_sql_query_from_llm, get_plot_code_from_llm, get_prompt_suggestions
@@ -96,11 +98,27 @@ def main():
                                 if plot_code:
                                     st.success("Plotting code generated:")
                                     st.code(plot_code, language="python")
+                                    
                                     with st.spinner("Generating plot..."):
-                                        plt.figure() # Create a new figure to avoid overlap
-                                        exec(plot_code, {"df": result_df, "plt": plt})
+                                        # Create a fresh figure for each plot
+                                        plt.figure()
+                                        
+                                        # Define the scope for exec()
+                                        plot_scope = {
+                                            "df": result_df,
+                                            "plt": plt,
+                                            "np": np,
+                                            "sns": sns
+                                        }
+                                        
+                                        # Execute the generated code
+                                        exec(plot_code, plot_scope)
+                                        
+                                        # Display the plot in Streamlit
                                         st.write("### Generated Visualization")
                                         st.pyplot(plt.gcf())
+                                        # Clear the figure to prevent it from affecting the next plot
+                                        plt.clf()
             con.close()
         except Exception as e:
             st.error(f"An error occurred: {e}")

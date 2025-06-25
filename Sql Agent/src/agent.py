@@ -49,8 +49,7 @@ def get_sql_query_from_llm(
     """
     Takes a user's natural language query and returns a SQL query from Google's Gemini.
     """
-    # --- PROMPT ENHANCEMENT ---
-    # We are adding information about the PRAGMA command to prevent hallucinations.
+    # --- PROMPT ENHANCEMENT for Type Casting ---
     system_prompt = f"""
 You are an expert data analyst. You are a powerful SQL agent.
 Your task is to convert a user's natural language question into a single, valid DuckDB SQL query.
@@ -59,8 +58,13 @@ The user's data is in a table named 'my_data'.
 This is the schema of the 'my_data' table:
 {db_schema}
 
-If the user asks a question about the table's schema, structure, or data types, you can query the database's metadata using the pragma function.
-The command is `PRAGMA table_info('my_data')`. This function returns a table with the following columns that you can query: `cid`, `name`, `type`, `notnull`, `dflt_value`, `pk`. The most useful columns are `name` and `type`.
+IMPORTANT: If the user asks a question that requires a time-based calculation (e.g., grouping by month, finding trends over time) and the relevant date column is of type VARCHAR (text), you MUST cast it to a date or timestamp first.
+Use the CAST function like this: `CAST(your_column_name AS DATE)` or `CAST(your_column_name AS TIMESTAMP)`.
+
+For example, to group by month on a VARCHAR column named 'essay_date', you would use:
+`STRFTIME('%Y-%m', CAST(essay_date AS DATE))`
+
+If the user asks about the table's schema, you can use `PRAGMA table_info('my_data')`. This returns columns `name` and `type`.
 
 RULES:
 - You MUST wrap the SQL query in a single markdown code block like this: ```sql\n[YOUR QUERY HERE]\n```
@@ -87,36 +91,50 @@ RULES:
 def get_plot_code_from_llm(
     user_query: str,
     sql_result: pd.DataFrame,
-    plot_type: str, # NEW argument
+    plot_type: str,
     google_api_key: str,
     model_name: str,
 ) -> Optional[str]:
     """Takes a user query, a DataFrame, and a plot type, and returns Python code for a plot."""
     data_sample = sql_result.to_string()
+
+    # --- NEW, MORE ROBUST PROMPT ---
     system_prompt = f"""
-You are a data visualization expert. Your task is to write Python code to visualize data for a user's request.
-You will be given the user's original request and a sample of the data obtained from a database.
-The data is available in a pandas DataFrame named `df`.
+You are an expert data visualization programmer. Your task is to write Python code to visualize data based on a user's request.
+
+The user has specifically requested a **{plot_type}**.
+
+Your code will be executed in a special environment where the following libraries and variables are ALREADY IMPORTED and available for you to use:
+- `plt` (from `matplotlib.pyplot`)
+- `np` (from `numpy`)
+- `sns` (from `seaborn`)
+- `df` (a pandas DataFrame containing the data to be plotted)
 
 RULES:
-- You MUST write Python code using the `matplotlib.pyplot` library.
-- Your code will be executed in a context where `df` (the data) and `plt` (matplotlib.pyplot) are already defined.
-- Do NOT include `import matplotlib.pyplot as plt` or code to create the `df`. Just write the plotting logic.
-- Your code should generate a single, clear, and relevant plot that answers the user's question.
-- The user has specifically requested a **{plot_type}**. Your generated Python code should create this type of chart.
-- The plot should be saved to a file named 'plot.png'. Use `plt.savefig('plot.png')`.
-- Wrap the Python code in a single markdown code block: ```python\n[YOUR CODE HERE]\n```
-- Only output the code. No explanations.
+- You MUST write Python code.
+- Do NOT include any import statements (e.g., `import numpy as np`), as they are already provided.
+- The data you need to plot is in the pandas DataFrame named `df`.
+- Use the provided libraries (`plt`, `np`, `sns`) to create a clear and relevant {plot_type}.
+- Use `plt.tight_layout()` to prevent labels from overlapping.
+- You do NOT need to save the file. The plot will be captured directly. Do NOT include `plt.savefig()` or `plt.show()`.
+
+Wrap your Python code in a single markdown code block: ```python\n[YOUR CODE HERE]\n```
+Only output the code. No explanations.
 """
+
     prompt = f"""
 User's original question: "{user_query}"
-Data sample:
+
+Data to plot (`df`):
 {data_sample}
-Write the Python code to plot this data as a {plot_type}.
+
+Write the Python code to create a {plot_type} of this data.
 """
     try:
         genai.configure(api_key=google_api_key)
-        model = genai.GenerativeModel(model_name=model_name, system_instruction=system_prompt)
+        # Use a more capable model for code generation if available
+        code_gen_model = "gemini-1.5-pro-latest"
+        model = genai.GenerativeModel(model_name=code_gen_model, system_instruction=system_prompt)
         response = model.generate_content(prompt)
         return extract_code(response.text, python_pattern)
     except Exception as e:
