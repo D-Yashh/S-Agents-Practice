@@ -1,9 +1,3 @@
-# Agents Practice Repository
-
-This repo contains agents for practice. The first practice agent is: **Sql Agent**.
-
----
-
 # 📊 Comprehensive AI SQL Agent
 
 This is an interactive Streamlit application that acts as a powerful data analysis assistant. Users can upload a CSV file, and the agent, powered by Google's Gemini models, will answer natural language questions by generating and executing SQL queries locally. It can provide answers as data tables and generate various types of visualizations.
@@ -64,33 +58,4 @@ This is an interactive Streamlit application that acts as a powerful data analys
     -   Upload a CSV file.
     -   Wait for the prompt suggestions to appear, or write your own question.
     -   Select a visualization type if desired.
-    -   Click "Analyze"!
-
-## Features
-- Modular agent architecture
-- Easy-to-extend framework for new agent types
-- Example agents and scenarios
-- Clear documentation and code comments
-
-## Getting Started
-
-1. **Clone the repository:**
-   ```bash
-   git clone <repo-url>
-   cd S-Agents Practice
-   ```
-2. **Install dependencies:**
-   (Add instructions here if you use a package manager like pip, npm, etc.)
-3. **Run the project:**
-   (Add instructions for running your main script or entry point.)
-
-## Usage
-- Modify or add agent classes in the appropriate directory.
-- Run example scenarios to see agents in action.
-- Extend the framework to suit your needs.
-
-## Contributing
-Contributions are welcome! Please open issues or submit pull requests for improvements or new features.
-
-## License
-Specify your license here (e.g., MIT, Apache 2.0, etc.). 
+    -   Click "Analyze"! 
