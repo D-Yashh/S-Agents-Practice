@@ -1,8 +1,7 @@
 streamlit
 pandas
-Pillow
-google-generativeai
 duckdb
+google-generativeai
 matplotlib
 numpy
 seaborn 
